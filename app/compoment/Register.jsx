@@ -66,9 +66,6 @@ const Register = () => {
                     {errors?.fieldErrors?.password ? (
                         <span className="text-red-500">{errors.fieldErrors['password']}</span>
                     ) : null}
-
-
-
                     <p><input className="btn" type="submit" value="Submit" />&nbsp;<input className="btn" type="reset" value="Reset" /></p>
                 </form>
             </div>
