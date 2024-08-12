@@ -1,13 +1,11 @@
-import { startServerAndCreateNextHandler } from "@as-integrations/next";
-import { ApolloServer } from "@apollo/server";
-import { startStandaloneServer } from '@apollo/server/standalone';
-import logger from "./logger";
-import Schema from "@/schema/User";
-// import connectDB from "@/db/connection";
-import gql from "graphql-tag";
+import { ApolloServer } from '@apollo/server';
+import { startServerAndCreateNextHandler } from '@as-integrations/next';
+import connectDB from "../../db/connection";
+import UserSchema from '../../schema/User';
+import userResolver from '../../services/user.resolver';
 
-// connectDB();
 
+import gql from 'graphql-tag';
 const typeDefs = gql`
       type Query {
         hello: String
@@ -16,27 +14,26 @@ const typeDefs = gql`
 
 const resolvers = {
     Query: {
-        hello: () => 'Hello, World!',
+        hello: () => 'Hello, ADESH!',
     },
 };
+// await connectDB();
+const apolloServer = new ApolloServer({
+    typeDefs: [typeDefs, UserSchema],
+    resolvers: [resolvers, userResolver],
+});
 
-
-const server = new ApolloServer({
-    typeDefs,
-    resolvers,
-    logging: true,
-    listen: {
-        port: 4000,
-        host: 'localhost',
+const getHandler = startServerAndCreateNextHandler(apolloServer, {
+    context: async ({ req }) => {
+        // console.log(req);
+        return {
+            userId: 123,
+            db: await connectDB(),
+        }
     },
 });
 
-const { url } = startStandaloneServer(server, {
-
-    // context: async ({ req }) => {
-    //     const token = getTokenFromRequest(req);
-    //     const { cache } = server;
-    //     return { token, dataSources: { moviesAPI: new MoviesAPI({ cache, token }) } };
-    // },
-});
-console.log(`Server ready at ${url}`);
+export const GET = getHandler;
+export const POST = getHandler;
+export const PUT = getHandler;
+export const DELETE = getHandler;

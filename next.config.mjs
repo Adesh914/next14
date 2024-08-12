@@ -7,13 +7,30 @@ const nextConfig = {
     async rewrites() {
         return [
             {
-                source: '/old-path',
-                destination: '/new-path',
+                source: '/api',
+                destination: '/api/graphql',
             },
-            // {
-            //     source: '/api/:path*',
-            //     destination: 'https://api.example.com/:path*',
-            // },
+        ];
+    },
+    async headers() {
+        return [
+            {
+                source: '/api',
+                headers: [
+                    {
+                        key: 'Access-Control-Allow-Origin',
+                        value: '*',
+                    },
+                    {
+                        key: 'Access-Control-Allow-Methods',
+                        value: 'GET, POST, PUT, DELETE, OPTIONS',
+                    },
+                    {
+                        key: 'Access-Control-Allow-Headers',
+                        value: 'Content-Type, Accept, Accept-Language, Accept-Encoding',
+                    },
+                ],
+            },
         ];
     },
 };

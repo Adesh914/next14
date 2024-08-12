@@ -39,9 +39,9 @@ class UserService {
    * @param {string} password - User password
    * @returns {Promise<User>} User object
    */
-    async createUser(name, email, password) {
+    async createUser(userData) {
         try {
-            const user = new User({ name, email, password });
+            const user = new User(userData);
             await user.save();
             return user;
         } catch (error) {
