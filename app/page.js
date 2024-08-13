@@ -1,10 +1,15 @@
-import Image from "next/image";
+"use client"
+import React from 'react';
 import styles from "./page.module.css";
 import Login from "./compoment/Login";
 import Register from "./compoment/Register";
-import JqueryDatatable from "./compoment/JqueryDatatable";
+// import JqueryDatatable from "./compoment/JqueryDatatable";
+import { useQuery } from "@apollo/client";
+import { DATATABLE_LIST } from "@/services/user.query";
 
 export default function Home() {
+
+  const [resultData] = useQuery(DATATABLE_LIST)
   return (
     <main className={styles.main}>
       <div className={styles.description}>

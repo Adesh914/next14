@@ -1,5 +1,5 @@
-import crypto from "node:crypto";
 import mongoose, { Model } from "mongoose";
+import bcrypt from "bcrypt";
 const { Schema } = mongoose;
 mongoose.Promise = global.Promise
 const userSchema = new Schema({
@@ -9,10 +9,10 @@ const userSchema = new Schema({
     password: { type: String, select: false }
 
 });
-// UserSchema.pre("save", async function (next) {
-//     if (!this.isModified("password")) {
-//         next();
-//     }
-//     this.password = await bcrypt.hash(this.password, 10);
-// });
+userSchema.pre("save", async function (next) {
+    if (!this.isModified("password")) {
+        next();
+    }
+    this.password = await bcrypt.hash(this.password, 10);
+});
 module.exports = mongoose.models.MyUser || mongoose.model("MyUser", userSchema);

@@ -9,9 +9,21 @@ const UserSchema = gql`
     email: String
     password: String
     }
+    #Datatable
+    type Datatable{
+        datatable:[User]
+        pagination:pagination_set
+    }
+    type pagination_set{
+        totalRow:Int
+        totalFiltered: Int
+        pageSize: Int
+    }
+    
     type Query{
         Users(q:String):[User]
         User(id:ID!): User
+        UserList(q: String,pageNo:Int,pageSize:Int):Datatable
     }
     
     #user input

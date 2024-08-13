@@ -1,4 +1,5 @@
 // Import required dependencies
+import { createHmac } from "node:crypto";
 import User from "../models/UserModel";
 import { AuthenticationError } from "@apollo/server";
 // Define the user service class
@@ -24,13 +25,19 @@ class UserService {
  * Get all users
  * @returns {Promise<User[]>} Array of user objects
  */
-    async getUsers() {
+    async getUsers(limit, currentPage, expr = {}) {
         try {
-            const users = await User.find();
+            const users = await User.find(expr).skip(limit * (currentPage - 1));
             return users;
         } catch (error) {
             throw error;
         }
+    }
+    async getPagination(limit, currentPage, expr = {}) {
+        // const totalFiltered = await User.count(expr);
+        const total = await User.countDocuments();
+        let no_of_pages = Math.ceil(total / limit); console.log(no_of_pages)
+        return { totalRow: total, totalFiltered: limit, pageSize: no_of_pages }
     }
     /**
    * Create a new user

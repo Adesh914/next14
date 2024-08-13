@@ -24,13 +24,13 @@ const apolloServer = new ApolloServer({
 });
 
 const getHandler = startServerAndCreateNextHandler(apolloServer, {
-    context: async ({ req }) => {
-        // console.log(req);
-        return {
-            userId: 123,
-            db: await connectDB(),
-        }
-    },
+    // context: async ({ req }) => {
+    //     // console.log(req);
+    //     return {
+    //         userId: 123,
+    //         db: await connectDB(),
+    //     }
+    // },
 });
 
 export const GET = getHandler;

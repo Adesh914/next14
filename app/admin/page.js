@@ -1,5 +1,7 @@
 "use client";
 import React from "react"
+import { useQuery } from "@apollo/client";
+import { DATATABLE } from "@/services/user.query";
 import {
     flexRender,
     getCoreRowModel,
@@ -43,6 +45,7 @@ const fuzzySort = (rowA, rowB, columnId) => {
     return dir === 0 ? sortingFns.alphanumeric(rowA, rowB, columnId) : dir
 }
 import styles from "../page.module.css";
+
 export default function UserList() {
     const rerender = React.useReducer(() => ({}), {})[1]
 
@@ -82,7 +85,19 @@ export default function UserList() {
 
     const [data, setData] = React.useState(() => makeData(5_000))
     const refreshData = () => setData(_old => makeData(50_000)) //stress test
+    // const [resultData] = useQuery(DATATABLE, {
+    //     variables: {
+    //         "q": null,
+    //         "pageNo": 1,
+    //         "pageSize": 5
+    //     },
+    //     onCompleted: (dataset) => {
 
+    //     },
+    //     onError: () => {
+
+    //     }
+    // })
     const table = useReactTable({
         data,
         columns,
