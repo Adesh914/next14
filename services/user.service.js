@@ -1,6 +1,6 @@
 // Import required dependencies
 import { createHmac } from "node:crypto";
-import User from "../models/UserModel";
+import UserModel from "../models/UserModel";
 import { AuthenticationError } from "@apollo/server";
 // Define the user service class
 class UserService {
@@ -11,7 +11,7 @@ class UserService {
       */
     async getUser(id) {
         try {
-            const user = await User.findById(id);
+            const user = await UserModel.findById(id);
             if (!user) {
                 throw new AuthenticationError('User not found');
             }
@@ -27,7 +27,7 @@ class UserService {
  */
     async getUsers(limit, currentPage, expr = {}) {
         try {
-            const users = await User.find(expr).skip(limit * (currentPage - 1));
+            const users = await UserModel.find(expr).skip(limit * (currentPage - 1)).limit(limit);
             return users;
         } catch (error) {
             throw error;
@@ -35,9 +35,10 @@ class UserService {
     }
     async getPagination(limit, currentPage, expr = {}) {
         // const totalFiltered = await User.count(expr);
-        const total = await User.countDocuments();
-        let no_of_pages = Math.ceil(total / limit); console.log(no_of_pages)
-        return { totalRow: total, totalFiltered: limit, pageSize: no_of_pages }
+
+        const total = await UserModel.countDocuments();
+        let no_of_pages = Math.ceil(total / limit);
+        return { totalRow: total, totalFiltered: limit, totalPage: no_of_pages }
     }
     /**
    * Create a new user
@@ -48,7 +49,7 @@ class UserService {
    */
     async createUser(userData) {
         try {
-            const user = new User(userData);
+            const user = new UserModel(userData);
             await user.save();
             return user;
         } catch (error) {
@@ -64,7 +65,7 @@ class UserService {
    */
     async updateUser(id, name, email) {
         try {
-            const user = await User.findByIdAndUpdate(id, { name, email }, { new: true });
+            const user = await UserModel.findByIdAndUpdate(id, { name, email }, { new: true });
             if (!user) {
                 throw new AuthenticationError('User not found');
             }

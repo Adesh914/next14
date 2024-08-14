@@ -12,12 +12,13 @@ const UserSchema = gql`
     #Datatable
     type Datatable{
         datatable:[User]
-        pagination:pagination_set
+        table_meta:pagination_set
     }
     type pagination_set{
         totalRow:Int
         totalFiltered: Int
         pageSize: Int
+        totalPage:Int
     }
     
     type Query{

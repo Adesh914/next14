@@ -1,5 +1,5 @@
 import gql from "graphql-tag";
-
+// https://www.apollographql.com/blog/pagination-and-infinite-scrolling#the-solution-fetchmore
 export const USER_LIST = gql`
 query Users($q: String) {
   Users(q: $q) {
@@ -32,10 +32,11 @@ query UserList($q: String, $pageNo: Int, $pageSize: Int) {
       email
       password
     }
-    pagination {
+    table_meta {
       totalRow
       totalFiltered
       pageSize
+      totalPage
     }
   }
 }

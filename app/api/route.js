@@ -17,20 +17,20 @@ const resolvers = {
         hello: () => 'Hello, ADESH!',
     },
 };
-// await connectDB();
+await connectDB();
 const apolloServer = new ApolloServer({
     typeDefs: [typeDefs, UserSchema],
     resolvers: [resolvers, userResolver],
 });
 
 const getHandler = startServerAndCreateNextHandler(apolloServer, {
-    // context: async ({ req }) => {
-    //     // console.log(req);
-    //     return {
-    //         userId: 123,
-    //         db: await connectDB(),
-    //     }
-    // },
+    context: async ({ req }) => {
+        // console.log(req);
+        return {
+            userId: 123,
+            // db: ,
+        }
+    },
 });
 
 export const GET = getHandler;

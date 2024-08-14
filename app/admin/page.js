@@ -1,12 +1,12 @@
 "use client";
-import React from "react"
+import { useState, useEffect, useMemo, useReducer } from "react"
 import { useQuery } from "@apollo/client";
-import { DATATABLE } from "@/services/user.query";
+import { DATATABLE_LIST } from "@/services/user.query";
 import {
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
-    getPaginationRowModel,
+    // getPaginationRowModel,
     getSortedRowModel,
     sortingFns,
     useReactTable
@@ -47,66 +47,108 @@ const fuzzySort = (rowA, rowB, columnId) => {
 import styles from "../page.module.css";
 
 export default function UserList() {
-    const rerender = React.useReducer(() => ({}), {})[1]
 
-    const [columnFilters, setColumnFilters] = React.useState([])
-    const [globalFilter, setGlobalFilter] = React.useState("")
 
-    const columns = React.useMemo(
+    const [columnFilters, setColumnFilters] = useState([])
+    const [globalFilter, setGlobalFilter] = useState("")
+
+    const columns = useMemo(
         () => [
             {
                 accessorKey: "id",
                 filterFn: "equalsString" //note: normal non-fuzzy filter column - exact match required
             },
             {
-                accessorKey: "firstName",
+                accessorKey: "first_name",
                 cell: info => info.getValue(),
                 filterFn: "includesStringSensitive" //note: normal non-fuzzy filter column
             },
             {
-                accessorFn: row => row.lastName, //note: normal non-fuzzy filter column - case sensitive
-                id: "lastName",
+                accessorFn: row => row.last_name, //note: normal non-fuzzy filter column - case sensitive
+                accessorKey: "last_name",
                 cell: info => info.getValue(),
                 header: () => <span>Last Name</span>,
                 filterFn: "includesString" //note: normal non-fuzzy filter column - case insensitive
             },
             {
-                accessorFn: row => `${row.firstName} ${row.lastName}`,
+                accessorFn: row => `${row.first_name} ${row.last_name}`,
                 id: "fullName",
                 header: "Full Name",
                 cell: info => info.getValue(),
                 filterFn: "fuzzy", //using our custom fuzzy filter function
                 // filterFn: fuzzyFilter, //or just define with the function
                 sortingFn: fuzzySort //sort by fuzzy rank (falls back to alphanumeric)
-            }
+            },
+            {
+                accessorFn: row => row.email, //note: normal non-fuzzy filter column - case sensitive
+                accessorKey: "email",
+                cell: info => info.getValue(),
+                header: () => <span>Email Address</span>,
+                filterFn: "includesString" //note: normal non-fuzzy filter column - case insensitive
+            },
         ],
         []
     )
+    /** user definded state **/
 
-    const [data, setData] = React.useState(() => makeData(5_000))
-    const refreshData = () => setData(_old => makeData(50_000)) //stress test
-    // const [resultData] = useQuery(DATATABLE, {
-    //     variables: {
-    //         "q": null,
-    //         "pageNo": 1,
-    //         "pageSize": 5
-    //     },
-    //     onCompleted: (dataset) => {
+    const [tableMeta, setTableMeta] = useState({
+        totalRow: 0,
+        currentPage: 1,
+        totalPage: 1,
+        pageSize: 5
+    });
 
-    //     },
-    //     onError: () => {
+    /**end user definded state **/
+    const [data, setData] = useState([]);
+    const [pagination, setPagination] = useState({
+        pageIndex: 0, //initial page index
+        pageSize: 5, //default page size
+    });
+    useEffect(() => { console.log("tableMeta", tableMeta) }, [tableMeta])
+    const resultData = useQuery(DATATABLE_LIST, {
+        variables: {
+            "q": null,
+            "pageNo": tableMeta.currentPage,
+            "pageSize": tableMeta.pageSize
+        },
+        onCompleted: (dataset) => {
+            // console.log(dataset.UserList.datatable)//pagination
+            const { datatable, table_meta } = dataset.UserList;
+            setData(datatable);
+            setTableMeta((oldMeta) => {
+                return {
+                    ...oldMeta,
+                    ["totalRow"]: table_meta.totalRow,
+                    // ["currentPage"]: 1,
+                    ["totalPage"]: table_meta.totalPage
+                }
+            });
+            setPagination({
+                ...pagination,
+                ["pageIndex"]: table_meta.pageNo,
+                ["pageSize"]: table_meta.pageSize
+            })
+        },
+        onError: () => {
 
-    //     }
-    // })
+        }
+    })
     const table = useReactTable({
         data,
         columns,
         filterFns: {
             fuzzy: fuzzyFilter //define as a filter function that can be used in column definitions
         },
+        initialState: {
+            pagination: {
+                pageIndex: tableMeta.currentPage - 1, //custom initial page index
+                pageSize: tableMeta.pageSize, //custom default page size
+            },
+        },
         state: {
             columnFilters,
-            globalFilter
+            globalFilter,
+
         },
         onColumnFiltersChange: setColumnFilters,
         onGlobalFilterChange: setGlobalFilter,
@@ -114,19 +156,24 @@ export default function UserList() {
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(), //client side filtering
         getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        debugTable: true,
-        debugHeaders: true,
+        // getPaginationRowModel: getPaginationRowModel(), //not needed for server-side pagination
+        manualPagination: true, //turn off client-side pagination
+        pageCount: tableMeta.totalPage,
+        rowCount: tableMeta.totalRow,
+        autoResetPageIndex: false,
+        debugTable: false,
+        debugHeaders: false,
         debugColumns: false
     });
 
     //apply the fuzzy sort if the fullName column is being filtered
-    React.useEffect(() => {
+    useEffect(() => {
         if (table.getState().columnFilters[0]?.id === "fullName") {
             if (table.getState().sorting[0]?.id !== "fullName") {
                 table.setSorting([{ id: "fullName", desc: false }])
             }
         }
+        // table.getState().columnFilters[0]?.id
     }, [table.getState().columnFilters[0]?.id]);
     function Filter({ column }) {
         const columnFilterValue = column.getFilterValue()
@@ -148,13 +195,13 @@ export default function UserList() {
         debounce = 500,
         ...props
     }) {
-        const [value, setValue] = React.useState(initialValue)
+        const [value, setValue] = useState(initialValue)
 
-        React.useEffect(() => {
+        useEffect(() => {
             setValue(initialValue)
         }, [initialValue])
 
-        React.useEffect(() => {
+        useEffect(() => {
             const timeout = setTimeout(() => {
                 onChange(value)
             }, debounce)
@@ -220,18 +267,26 @@ export default function UserList() {
                         </thead>
                         <tbody>
                             {table.getRowModel().rows.map(row => {
+                                // console.log("getVisibleCells:", row.id)
                                 return (
-                                    <tr key={row.id}>
-                                        {row.getVisibleCells().map(cell => {
-                                            return (
-                                                <td key={cell.id}>
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
-                                                    )}
-                                                </td>
-                                            )
-                                        })}
+
+                                    < tr key={row.id} >
+                                        {
+                                            row.getVisibleCells().map(cell => {
+
+
+                                                return (
+                                                    <td key={cell.id} {...cell.column.id == 'email' ? {
+                                                        onClick: (e) => console.log(row.original.id)
+                                                    } : ``}>
+                                                        {cell.column.id !== 'id' ? (flexRender(
+                                                            cell.column.columnDef.cell, cell.getContext()
+                                                        )) : parseInt(row.id) + 1}
+
+                                                    </td>
+                                                )
+                                            })
+                                        }
                                     </tr>
                                 )
                             })}
@@ -262,7 +317,19 @@ export default function UserList() {
                         </button>
                         <button
                             className="border rounded p-1"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                            onClick={() => {
+                                let currentPageIndex = table.getPageCount() - 1;
+                                setTableMeta((oldMeta) => {
+                                    return {
+                                        ...oldMeta,
+                                        // ["totalRow"]: table_meta.totalRow,
+                                        ["currentPage"]: table.getPageCount(),
+                                        // ["totalPage"]: table_meta.totalPage
+                                    }
+                                });
+                                resultData.refetch()
+                                table.setPageIndex(currentPageIndex)
+                            }} //
                             disabled={!table.getCanNextPage()}
                         >
                             {">>"}
@@ -292,21 +359,20 @@ export default function UserList() {
                                 table.setPageSize(Number(e.target.value))
                             }}
                         >
-                            {[10, 20, 30, 40, 50].map(pageSize => (
+                            {[5, 6, 3, 40, 50].map(pageSize => (
                                 <option key={pageSize} value={pageSize}>
                                     Show {pageSize}
                                 </option>
                             ))}
                         </select>
                     </div>
-                    <div>{table.getPrePaginationRowModel().rows.length} Rows</div>
-                    <div>
-                        <button onClick={() => rerender()}>Force Rerender</button>
-                    </div>
-                    <div>
-                        <button onClick={() => refreshData()}>Refresh Data</button>
-                    </div>
+                    <div>{table.getRowCount()} Row</div>
+
+
                     <pre>
+                        {/* {
+                            console.log("Table:", table.getRowCount())
+                        } */}
                         {JSON.stringify(
                             {
                                 columnFilters: table.getState().columnFilters,
@@ -318,6 +384,6 @@ export default function UserList() {
                     </pre>
                 </div>
             </div>
-        </main>
+        </main >
     );
 }
