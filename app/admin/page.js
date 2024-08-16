@@ -12,8 +12,7 @@ import {
     useReactTable
 } from "@tanstack/react-table";
 import { rankItem, compareItems } from "@tanstack/match-sorter-utils";
-// import { makeData } from "./makeData";
-const makeData = () => { return [] };
+
 
 // Define a custom fuzzy filter function that will apply ranking info to rows (using match-sorter utils)
 const fuzzyFilter = (row, columnId, value, addMeta) => {
@@ -45,6 +44,7 @@ const fuzzySort = (rowA, rowB, columnId) => {
     return dir === 0 ? sortingFns.alphanumeric(rowA, rowB, columnId) : dir
 }
 import styles from "../page.module.css";
+import { Console } from "winston/lib/winston/transports";
 
 export default function UserList() {
 
@@ -75,8 +75,8 @@ export default function UserList() {
                 id: "fullName",
                 header: "Full Name",
                 cell: info => info.getValue(),
-                filterFn: "fuzzy", //using our custom fuzzy filter function
-                // filterFn: fuzzyFilter, //or just define with the function
+                // filterFn: "fuzzy", //using our custom fuzzy filter function
+                filterFn: fuzzyFilter, //or just define with the function
                 sortingFn: fuzzySort //sort by fuzzy rank (falls back to alphanumeric)
             },
             {
@@ -94,17 +94,33 @@ export default function UserList() {
     const [tableMeta, setTableMeta] = useState({
         totalRow: 0,
         currentPage: 1,
-        totalPage: 1,
+        totalPage: 0,
         pageSize: 5
     });
 
     /**end user definded state **/
     const [data, setData] = useState([]);
-    const [pagination, setPagination] = useState({
-        pageIndex: 0, //initial page index
-        pageSize: 5, //default page size
-    });
-    useEffect(() => { console.log("tableMeta", tableMeta) }, [tableMeta])
+    // const [pagination, setPagination] = useState({
+    //     pageIndex: 0, //initial page index
+    //     pageSize: 5, //default page size
+    // });
+    useEffect(() => {
+        // setPagination({
+        //     ...pagination,
+        //     // ["pageIndex"]: table_meta.pageNo,
+        //     ["pageSize"]: tableMeta.pageSize
+        // });
+        table.setPageSize(Number(6))
+        console.log("TABLE", table.getState().pagination.pageSize);
+    }, [tableMeta])
+    const PageIndex = (count) => {
+        setTableMeta((oldMeta) => {
+            return {
+                ...oldMeta,
+                ["currentPage"]: count,
+            }
+        });
+    }
     const resultData = useQuery(DATATABLE_LIST, {
         variables: {
             "q": null,
@@ -123,11 +139,11 @@ export default function UserList() {
                     ["totalPage"]: table_meta.totalPage
                 }
             });
-            setPagination({
-                ...pagination,
-                ["pageIndex"]: table_meta.pageNo,
-                ["pageSize"]: table_meta.pageSize
-            })
+            // setPagination({
+            //     ...pagination,
+            //     ["pageIndex"]: table_meta.pageNo,
+            //     ["pageSize"]: table_meta.pageSize
+            // });
         },
         onError: () => {
 
@@ -139,23 +155,24 @@ export default function UserList() {
         filterFns: {
             fuzzy: fuzzyFilter //define as a filter function that can be used in column definitions
         },
-        initialState: {
-            pagination: {
-                pageIndex: tableMeta.currentPage - 1, //custom initial page index
-                pageSize: tableMeta.pageSize, //custom default page size
-            },
-        },
-        state: {
-            columnFilters,
-            globalFilter,
+        // initialState: {
+        //     pagination: {
+        //         pageIndex: tableMeta.currentPage - 1, //custom initial page index
+        //         pageSize: tableMeta.pageSize, //custom default page size
+        //     },
+        // },
+        // state: {
+        //     columnFilters,
+        //     globalFilter,
 
-        },
+        // },
         onColumnFiltersChange: setColumnFilters,
         onGlobalFilterChange: setGlobalFilter,
         globalFilterFn: "fuzzy", //apply fuzzy filter to the global filter (most common use case for fuzzy filter)
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(), //client side filtering
         getSortedRowModel: getSortedRowModel(),
+        // onPaginationChange: () => resultData.refetch(),
         // getPaginationRowModel: getPaginationRowModel(), //not needed for server-side pagination
         manualPagination: true, //turn off client-side pagination
         pageCount: tableMeta.totalPage,
@@ -182,7 +199,7 @@ export default function UserList() {
             <DebouncedInput
                 type="text"
                 value={columnFilterValue ?? ""}
-                onChange={value => column.setFilterValue(value)}
+                onChange={e => console.log(e)}
                 placeholder={`Search...`}
                 className="w-36 border shadow rounded"
             />
@@ -231,6 +248,7 @@ export default function UserList() {
                             {table.getHeaderGroups().map(headerGroup => (
                                 <tr key={headerGroup.id}>
                                     {headerGroup.headers.map(header => {
+
                                         return (
                                             <th key={header.id} colSpan={header.colSpan}>
                                                 {header.isPlaceholder ? null : (
@@ -252,6 +270,7 @@ export default function UserList() {
                                                                 desc: " 🔽"
                                                             }[header.column.getIsSorted()] ?? null}
                                                         </div>
+
                                                         {header.column.getCanFilter() ? (
                                                             <div>
                                                                 <Filter column={header.column} />
@@ -318,18 +337,9 @@ export default function UserList() {
                         <button
                             className="border rounded p-1"
                             onClick={() => {
-                                let currentPageIndex = table.getPageCount() - 1;
-                                setTableMeta((oldMeta) => {
-                                    return {
-                                        ...oldMeta,
-                                        // ["totalRow"]: table_meta.totalRow,
-                                        ["currentPage"]: table.getPageCount(),
-                                        // ["totalPage"]: table_meta.totalPage
-                                    }
-                                });
-                                resultData.refetch()
-                                table.setPageIndex(currentPageIndex)
-                            }} //
+                                PageIndex(table.getState().pagination.pageIndex + 1);
+                                table.setPageIndex(table.getPageCount() - 1)
+                            }}
                             disabled={!table.getCanNextPage()}
                         >
                             {">>"}
@@ -346,17 +356,24 @@ export default function UserList() {
                             <input
                                 type="number"
                                 defaultValue={table.getState().pagination.pageIndex + 1}
-                                onChange={e => {
+                                /* onChange={(e) => {
+                                    // resultData.refetch();
                                     const page = e.target.value ? Number(e.target.value) - 1 : 0
                                     table.setPageIndex(page)
-                                }}
+                                }} */
                                 className="border p-1 rounded w-16"
                             />
                         </span>
                         <select
-                            value={table.getState().pagination.pageSize}
+                            value={tableMeta.pageSize}
                             onChange={e => {
-                                table.setPageSize(Number(e.target.value))
+                                setTableMeta((oldMeta) => {
+                                    return {
+                                        ...oldMeta,
+                                        ["pageSize"]: Number(e.target.value),
+                                    }
+                                });
+
                             }}
                         >
                             {[5, 6, 3, 40, 50].map(pageSize => (
