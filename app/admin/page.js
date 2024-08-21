@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect, useMemo, useReducer } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useQuery } from "@apollo/client";
 import { DATATABLE_LIST } from "@/services/user.query";
 import {
     flexRender,
     getCoreRowModel,
-    getFilteredRowModel,
+    // getFilteredRowModel,
     // getPaginationRowModel,
     getSortedRowModel,
     sortingFns,
@@ -44,7 +44,7 @@ const fuzzySort = (rowA, rowB, columnId) => {
     return dir === 0 ? sortingFns.alphanumeric(rowA, rowB, columnId) : dir
 }
 import styles from "../page.module.css";
-import { Console } from "winston/lib/winston/transports";
+
 
 export default function UserList() {
 
@@ -56,6 +56,7 @@ export default function UserList() {
         () => [
             {
                 accessorKey: "id",
+                enableColumnFilter: false,
                 filterFn: "equalsString" //note: normal non-fuzzy filter column - exact match required
             },
             {
@@ -74,9 +75,10 @@ export default function UserList() {
                 accessorFn: row => `${row.first_name} ${row.last_name}`,
                 id: "fullName",
                 header: "Full Name",
+                enableColumnFilter: false,
                 cell: info => info.getValue(),
-                // filterFn: "fuzzy", //using our custom fuzzy filter function
-                filterFn: fuzzyFilter, //or just define with the function
+                filterFn: "fuzzy", //using our custom fuzzy filter function
+                // filterFn: fuzzyFilter, //or just define with the function
                 sortingFn: fuzzySort //sort by fuzzy rank (falls back to alphanumeric)
             },
             {
@@ -95,7 +97,8 @@ export default function UserList() {
         totalRow: 0,
         currentPage: 1,
         totalPage: 0,
-        pageSize: 5
+        pageSize: 5,
+        filterCols: []
     });
 
     /**end user definded state **/
@@ -110,8 +113,8 @@ export default function UserList() {
         //     // ["pageIndex"]: table_meta.pageNo,
         //     ["pageSize"]: tableMeta.pageSize
         // });
-        table.setPageSize(Number(6))
-        console.log("TABLE", table.getState().pagination.pageSize);
+        // table.setPageSize(Number(6))
+        // console.log("TABLE", table.getState().pagination.pageSize);
     }, [tableMeta])
     const PageIndex = (count) => {
         setTableMeta((oldMeta) => {
@@ -123,9 +126,9 @@ export default function UserList() {
     }
     const resultData = useQuery(DATATABLE_LIST, {
         variables: {
-            "q": null,
             "pageNo": tableMeta.currentPage,
-            "pageSize": tableMeta.pageSize
+            "pageSize": tableMeta.pageSize,
+            "filter": tableMeta.filterCols
         },
         onCompleted: (dataset) => {
             // console.log(dataset.UserList.datatable)//pagination
@@ -161,28 +164,31 @@ export default function UserList() {
         //         pageSize: tableMeta.pageSize, //custom default page size
         //     },
         // },
-        // state: {
-        //     columnFilters,
-        //     globalFilter,
+        state: {
+            columnFilters,
+            globalFilter,
 
-        // },
+        },
         onColumnFiltersChange: setColumnFilters,
         onGlobalFilterChange: setGlobalFilter,
         globalFilterFn: "fuzzy", //apply fuzzy filter to the global filter (most common use case for fuzzy filter)
         getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(), //client side filtering
+        // getFilteredRowModel: getFilteredRowModel(), //client side filtering
         getSortedRowModel: getSortedRowModel(),
         // onPaginationChange: () => resultData.refetch(),
         // getPaginationRowModel: getPaginationRowModel(), //not needed for server-side pagination
+        manualFiltering: true,
         manualPagination: true, //turn off client-side pagination
+        manualSorting: true,
         pageCount: tableMeta.totalPage,
         rowCount: tableMeta.totalRow,
+        // onPaginationChange: setPagination,
         autoResetPageIndex: false,
         debugTable: false,
         debugHeaders: false,
         debugColumns: false
     });
-
+    console.log(table.getState().columnFilters) // access the column filters state from the table instance
     //apply the fuzzy sort if the fullName column is being filtered
     useEffect(() => {
         if (table.getState().columnFilters[0]?.id === "fullName") {
@@ -194,12 +200,12 @@ export default function UserList() {
     }, [table.getState().columnFilters[0]?.id]);
     function Filter({ column }) {
         const columnFilterValue = column.getFilterValue()
-
+        // console.log("columnFilterValue:", columnFilterValue)
         return (
             <DebouncedInput
                 type="text"
                 value={columnFilterValue ?? ""}
-                onChange={e => console.log(e)}
+                onChange={value => column.setFilterValue(value)}
                 placeholder={`Search...`}
                 className="w-36 border shadow rounded"
             />
@@ -213,22 +219,36 @@ export default function UserList() {
         ...props
     }) {
         const [value, setValue] = useState(initialValue)
-
+        // console.log(onChange)
         useEffect(() => {
+            // console.log("initialValue:", initialValue);
             setValue(initialValue)
         }, [initialValue])
 
         useEffect(() => {
             const timeout = setTimeout(() => {
-                onChange(value)
+                onChange(value);
             }, debounce)
-
-            return () => clearTimeout(timeout)
-        }, [value])
+            return () => clearTimeout(timeout);
+        }, [value, onChange, debounce])
 
         return (
             <input {...props} value={value} onChange={e => setValue(e.target.value)} />
         )
+    }
+
+    useEffect(() => {
+        resultData.refetch();
+    }, [tableMeta]);
+    const doFilter = (e) => {
+        const { name, value } = e.target;
+        setTableMeta((oldfilter) => {
+            return {
+                ...oldfilter,
+                ["filterCols"]: { ["first_name"]: '' }
+            }
+        })
+        // filterCols
     }
     return (
         <main className={styles.main}>
@@ -273,7 +293,8 @@ export default function UserList() {
 
                                                         {header.column.getCanFilter() ? (
                                                             <div>
-                                                                <Filter column={header.column} />
+                                                                <input name={header.column.id} value={tableMeta?.filterCols[header.column.id]} onChange={doFilter} />
+                                                                {/*  <Filter column={header.column} /> */}
                                                             </div>
                                                         ) : null}
                                                     </>
@@ -315,21 +336,52 @@ export default function UserList() {
                     <div className="flex items-center gap-2">
                         <button
                             className="border rounded p-1"
-                            onClick={() => table.setPageIndex(0)}
+                            onClick={() => {
+                                table.setPageIndex(0);
+                                setTableMeta((oldPage) => {
+                                    return {
+                                        ...oldPage,
+                                        ["currentPage"]: 1
+                                    }
+                                });
+                            }}
                             disabled={!table.getCanPreviousPage()}
                         >
                             {"<<"}
                         </button>
                         <button
                             className="border rounded p-1"
-                            onClick={() => table.previousPage()}
+                            onClick={() => {
+                                setTableMeta((oldPage) => {
+                                    return {
+                                        ...oldPage,
+                                        ["currentPage"]: table.getState().pagination.pageIndex
+                                    }
+                                });
+                                table.previousPage();
+                            }}
                             disabled={!table.getCanPreviousPage()}
                         >
                             {"<"}
                         </button>
                         <button
                             className="border rounded p-1"
-                            onClick={() => table.nextPage()}
+                            onClick={() => {
+                                table.nextPage();
+                                // let currentIndex = table.getState().pagination.pageIndex !== 0 ? table.getState().pagination.pageIndex + 1 : table.getState().pagination.pageIndex + 2
+
+
+                                let indexNo = table.getState().pagination.pageIndex !== 0 ? parseInt(table.getState().pagination.pageIndex + 1) : 1;
+                                const page = table.getState().pagination.pageIndex ? table.getState().pagination.pageIndex + 1 : 0
+                                console.log("CURR_PAGE:", table.getState().pagination.pageIndex)
+                                setTableMeta((oldPage) => {
+                                    return {
+                                        ...oldPage,
+                                        ["currentPage"]: page
+                                    }
+                                });
+                                table.setPageIndex(page);
+                            }}
                             disabled={!table.getCanNextPage()}
                         >
                             {">"}
@@ -338,7 +390,15 @@ export default function UserList() {
                             className="border rounded p-1"
                             onClick={() => {
                                 PageIndex(table.getState().pagination.pageIndex + 1);
-                                table.setPageIndex(table.getPageCount() - 1)
+                                table.setPageIndex(table.getPageCount() - 1);
+                                // console.log("border:", table.getState().pagination.pageIndex + 1);
+                                setTableMeta((oldPage) => {
+                                    return {
+                                        ...oldPage,
+                                        ["currentPage"]: table.getPageCount()
+                                    }
+                                });
+
                             }}
                             disabled={!table.getCanNextPage()}
                         >
@@ -347,6 +407,7 @@ export default function UserList() {
                         <span className="flex items-center gap-1">
                             <div>Page</div>
                             <strong>
+
                                 {table.getState().pagination.pageIndex + 1} of{" "}
                                 {table.getPageCount()}
                             </strong>
@@ -356,11 +417,24 @@ export default function UserList() {
                             <input
                                 type="number"
                                 defaultValue={table.getState().pagination.pageIndex + 1}
-                                /* onChange={(e) => {
-                                    // resultData.refetch();
+                                onChange={(e) => {
                                     const page = e.target.value ? Number(e.target.value) - 1 : 0
                                     table.setPageIndex(page)
-                                }} */
+
+                                }}
+                                onKeyDown={(e) => {
+
+                                    if (e.key === 'Enter') {
+                                        // alert('Enter... (KeyPress, use charCode)');
+                                        setTableMeta((oldPage) => {
+                                            return {
+                                                ...oldPage,
+                                                ["currentPage"]: parseInt(e.target.value)
+                                            }
+                                        })
+                                        // console.log(e.target.value)
+                                    }
+                                }}
                                 className="border p-1 rounded w-16"
                             />
                         </span>

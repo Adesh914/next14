@@ -27,6 +27,7 @@ class UserService {
  */
     async getUsers(limit, currentPage, expr = {}) {
         try {
+
             const users = await UserModel.find(expr).skip(limit * (currentPage - 1)).limit(limit);
             return users;
         } catch (error) {
