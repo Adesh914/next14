@@ -23,7 +23,7 @@ mutation Add($input: UserInput) {
 }
 `;
 export const DATATABLE_LIST = gql`
-query UserList($q: String, $pageNo: Int, $pageSize: Int,$filter: UserFilter) {
+query UserList($q: String, $pageNo: Int, $pageSize: Int, $filter: [String]) {
   UserList(q: $q, pageNo: $pageNo, pageSize: $pageSize,filter:$filter) {
     datatable {
       id

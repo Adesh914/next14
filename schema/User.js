@@ -22,14 +22,13 @@ const UserSchema = gql`
     }
     #filter parameter pass as input type of object
     input UserFilter{
-        first_name: String
-        last_name: String
-        email: String
+        id: String
+        value: String
     }
     type Query{
         Users(q:String):[User]
         User(id:ID!): User
-        UserList(filter:UserFilter,q: String,pageNo:Int,pageSize:Int):Datatable
+        UserList(filter:[String],q: String,pageNo:Int,pageSize:Int):Datatable
     }
     
     #user input

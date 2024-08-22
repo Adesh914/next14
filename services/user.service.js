@@ -37,7 +37,7 @@ class UserService {
     async getPagination(limit, currentPage, expr = {}) {
         // const totalFiltered = await User.count(expr);
 
-        const total = await UserModel.countDocuments();
+        const total = await UserModel.countDocuments(expr);
         let no_of_pages = Math.ceil(total / limit);
         return { totalRow: total, totalFiltered: limit, totalPage: no_of_pages }
     }
