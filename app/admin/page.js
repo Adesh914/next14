@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from "@apollo/client"
 import styles from "../page.module.css";
 import {
@@ -70,7 +70,9 @@ function DebouncedInput({
     )
 }
 function SelectOpt(value) {
+    const bpaChange = () => {
 
+    }
 
     return (<>
         <select
@@ -89,6 +91,25 @@ function SelectOpt(value) {
     </>)
 }
 
+function IndeterminateCheckbox({ indeterminate, className = "", ...rest }) {
+    const ref = useRef(null)
+
+    useEffect(() => {
+        if (typeof indeterminate === "boolean") {
+            ref.current.indeterminate = !rest.checked && indeterminate
+        }
+    }, [ref, indeterminate])
+
+    return (
+        <input
+            type="checkbox"
+            ref={ref}
+            className={className + " cursor-pointer"}
+            {...rest}
+        />
+    )
+}
+
 export default function DeliveryList() {
 
     // const rerender = useReducer(() => ({}), {})[1]
@@ -98,6 +119,30 @@ export default function DeliveryList() {
 
     const columns = useMemo(
         () => [
+            {
+                id: 'select',
+                header: ({ table }) => (
+                    <IndeterminateCheckbox
+                        {...{
+                            checked: table.getIsAllRowsSelected(),
+                            indeterminate: table.getIsSomeRowsSelected(),
+                            onChange: table.getToggleAllRowsSelectedHandler(),
+                        }}
+                    />
+                ),
+                cell: ({ row }) => (
+                    <div className="px-1">
+                        <IndeterminateCheckbox
+                            {...{
+                                checked: row.getIsSelected(),
+                                disabled: !row.getCanSelect(),
+                                indeterminate: row.getIsSomeSelected(),
+                                onChange: row.getToggleSelectedHandler(),
+                            }}
+                        />
+                    </div>
+                ),
+            },
             {
                 accessorKey: "id",
                 header: () => <span>S.NO</span>,
@@ -137,9 +182,9 @@ export default function DeliveryList() {
         []
     )
 
-    const [data, setData] = useState(defaultData);//() => makeData(5_000)
+    const [data, setData] = useState([]);//() => makeData(5_000)
     /** user definded state **/
-
+    const [rowSelection, setRowSelection] = useState({})
     const [tableMeta, setTableMeta] = useState({
         totalRow: 0,
         currentPage: 1,
@@ -179,10 +224,12 @@ export default function DeliveryList() {
     const table = useReactTable({
         data,
         columns,
+        getRowId: row => row.id,
         filterFns: {
             fuzzy: fuzzyFilter //define as a filter function that can be used in column definitions
         },
         state: {
+            rowSelection,
             columnFilters,
             globalFilter
         },
@@ -191,10 +238,14 @@ export default function DeliveryList() {
         globalFilterFn: "fuzzy", //apply fuzzy filter to the global filter (most common use case for fuzzy filter)
         getCoreRowModel: getCoreRowModel(),
         // getFilteredRowModel: getFilteredRowModel(), //client side filtering
+        enableRowSelection: true,
         getSortedRowModel: getSortedRowModel(),
         // getPaginationRowModel: getPaginationRowModel(),
         pageCount: tableMeta.totalPage,
         rowCount: tableMeta.totalRow,
+
+        onRowSelectionChange: setRowSelection,
+
         manualFiltering: true,
         manualPagination: true, //turn off client-side pagination
         debugTable: true,
@@ -247,7 +298,7 @@ export default function DeliveryList() {
 
                                             {table.getHeaderGroups().map(headerGroup => (
                                                 // TableHead(headerGroup);
-                                                <tr key={headerGroup.id} className="text-start text-gray-800 fw-bold fs-7 gs-0">
+                                                <tr key={headerGroup.id} className={`text-start text-gray-800 fw-bold fs-7 gs-0     `}>
                                                     {headerGroup.headers.map(header => {
                                                         return (
                                                             <th key={header.id} colSpan={header.colSpan}>
@@ -272,7 +323,7 @@ export default function DeliveryList() {
                                                                         </div>
                                                                         {header.column.getCanFilter() ? (
                                                                             <div>
-                                                                                {console.log(header.column.id)}
+                                                                                {/* {console.log(header.column.id)} */}
                                                                                 {header.column.id === 'last_name' ? <SelectOpt value="a" /> : <Filter column={header.column} />}
 
                                                                             </div>
@@ -288,7 +339,7 @@ export default function DeliveryList() {
                                         <tbody>
                                             {table.getRowModel().rows.map(row => {
                                                 return (
-                                                    <tr key={row.id}>
+                                                    <tr key={row.id} className={row.getIsSelected() ? 'selected' : null} onClick={row.getToggleSelectedHandler()}>
                                                         {row.getVisibleCells().map(cell => {
                                                             return (
                                                                 <td key={cell.id} {...cell.column.id == 'email' ? {
@@ -344,14 +395,14 @@ export default function DeliveryList() {
                                             className="border rounded p-1"
                                             onClick={() => {
                                                 table.nextPage();
-                                                const page = table.getState().pagination.pageIndex ? table.getState().pagination.pageIndex + 1 : 0;
+                                                const page = table.getState().pagination.pageIndex + 2;
                                                 setTableMeta((oldPage) => {
                                                     return {
                                                         ...oldPage,
                                                         ["currentPage"]: page
                                                     }
                                                 });
-                                                table.setPageIndex(page);
+                                                table.setPageIndex(page - 1);
                                             }}
                                             disabled={!table.getCanNextPage()}
                                         >
@@ -432,6 +483,7 @@ export default function DeliveryList() {
 <button onClick={() => refreshData()}>Refresh Data</button>
 </div> */}
                                     <pre>
+                                        {JSON.stringify(rowSelection)}
                                         {JSON.stringify(
                                             {
                                                 columnFilters: table.getState().columnFilters,
@@ -441,7 +493,11 @@ export default function DeliveryList() {
                                             2
                                         )}
                                     </pre>
-
+                                    <div>
+                                        {Object.keys(rowSelection).length} of{" "}
+                                        {table.getPreFilteredRowModel().rows.length} Total Rows Selected
+                                    </div>
+                                    <hr />
                                 </div>
                             </div>
                         </div>
