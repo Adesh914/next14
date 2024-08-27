@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import { useState } from "react";
+import toast from "react-hot-toast";
 import { useMutation } from "@apollo/client";
 import { ADD_USER } from "@/services/user.query";
 import { z } from "zod";
@@ -18,13 +18,12 @@ const Register = () => {
     const [errors, setErrors] = useState();
     const [AddUser, { data, loading, error }] = useMutation(ADD_USER)
     // const toastId = toast.loading('Loading...');
-    if (loading) return toast.loading('Waiting...');
-    if (error) return `Submission error! ${error.message}`;
+    if (loading) return toast.loading('Waiting...', { id: 'processing_new_user' });
+    if (error) toast.error(`Submission error! ${error.message}`, { id: `fail_new_user`, closeOnClick: true, });
     if (data) {
-        toast.success("New user added successfully.");
-        setTimeout(() => {
-            // toast.dismiss();
-        }, 1000);
+
+        toast.success("New user added successfully.", { id: 'new_user_success' });
+        // setFormdata({ firstName: '', lastName: '', email: '', password: '' });
 
     }
 
@@ -40,7 +39,7 @@ const Register = () => {
     const RegisterSubmitHandler = (e) => {
         e.preventDefault();
         const register = registerSchema.safeParse(formdata);
-        console.log(register)
+
         try {
             if (!register.success) {
                 setErrors(register.error.flatten());
@@ -90,17 +89,10 @@ const Register = () => {
                         <span className="text-red-500">{errors.fieldErrors['password']}</span>
                     ) : null}
                     <p><input className="btn" type="submit" value="Submit" />&nbsp;<input className="btn" type="reset" value="Reset" /></p>
+
                 </form>
             </div>
-            <Toaster position="top-right" toastOptions={{
-                // Define default options
-                className: '',
-                duration: 2000,
-                style: {
-                    background: '#363636',
-                    color: '#fff',
-                }
-            }} />
+
         </div>
     )
 }

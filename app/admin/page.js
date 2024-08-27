@@ -144,21 +144,26 @@ export default function DeliveryList() {
                 ),
             },
             {
+                accessorKey: "select-row",
+                header: () => ``,
+                enableColumnFilter: false,
+            },
+            {
                 accessorKey: "id",
                 header: () => <span>S.NO</span>,
-                filterFn: "equalsString" //note: normal non-fuzzy filter column - exact match required
+                // filterFn: "equalsString" //note: normal non-fuzzy filter column - exact match required
             },
             {
                 accessorKey: "first_name",
                 cell: info => info.getValue(),
-                header: () => <span>Case Id</span>,
+                header: () => <span>First Name</span>,
                 filterFn: "includesStringSensitive" //note: normal non-fuzzy filter column
             },
             {
                 accessorFn: row => row.last_name, //note: normal non-fuzzy filter column - case sensitive
                 id: "last_name",
                 cell: info => info.getValue(),
-                header: () => <span>Patient Name</span>,
+                header: () => <span>Last Name</span>,
                 filterFn: "includesString" //note: normal non-fuzzy filter column - case insensitive
             },
             {
@@ -166,7 +171,7 @@ export default function DeliveryList() {
                 id: "fullName",
                 header: "Full Name",
                 cell: info => info.getValue(),
-                header: () => <span>Bpa Name</span>,
+                header: () => <span>Full Name</span>,
                 //   filterFn: "fuzzy", //using our custom fuzzy filter function
                 filterFn: fuzzyFilter, //or just define with the function
                 sortingFn: fuzzySort //sort by fuzzy rank (falls back to alphanumeric)
@@ -345,13 +350,13 @@ export default function DeliveryList() {
                                                                 <td key={cell.id} {...cell.column.id == 'email' ? {
                                                                     onClick: (e) => console.log(row.original.id)
                                                                 } : ``}>
-                                                                    {/* {flexRender(
+                                                                    {flexRender(
                                                                         cell.column.columnDef.cell,
                                                                         cell.getContext()
-                                                                    )} */}
-                                                                    {cell.column.id !== 'id' ? (flexRender(
+                                                                    )}
+                                                                    {/*  {cell.column.id !== 'id' ? (flexRender(
                                                                         cell.column.columnDef.cell, cell.getContext()
-                                                                    )) : parseInt(row.id) + 1}
+                                                                    )) : parseInt(row.id) + 1} */}
                                                                 </td>
                                                             )
                                                         })}
@@ -449,6 +454,7 @@ export default function DeliveryList() {
                                                                 ["currentPage"]: parseInt(e.target.value)
                                                             }
                                                         })
+                                                        table.setPageIndex(parseInt(e.target.value))
                                                         // console.log(e.target.value)
                                                     }
                                                 }}
@@ -467,7 +473,7 @@ export default function DeliveryList() {
 
                                             }}
                                         >
-                                            {[5, 6, 3, 40, 50].map(pageSize => (
+                                            {[5, 3, 10, 20, 25].map(pageSize => (
                                                 <option key={pageSize} value={pageSize}>
                                                     Show {pageSize}
                                                 </option>

@@ -1,9 +1,21 @@
 // Import required dependencies
-import { createHmac } from "node:crypto";
+
 import UserModel from "../models/UserModel";
 import { AuthenticationError } from "@apollo/server";
+import { promises } from "node:dns";
 // Define the user service class
 class UserService {
+    /**
+     * Get a user by email id
+     *@param {string} email - User email
+     *@returns {promises} user object
+     */
+    async getOne(email) {
+        try {
+            const email_row = await UserModel.findOne({ email }).select("+password");
+            return email_row;
+        } catch (e) { }
+    }
     /**
       * Get a user by ID
       * @param {string} id - User ID

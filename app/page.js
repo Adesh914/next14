@@ -3,6 +3,7 @@ import React from 'react';
 import styles from "./page.module.css";
 import Login from "./compoment/Login";
 import Register from "./compoment/Register";
+import { Toaster } from "react-hot-toast";
 // import JqueryDatatable from "./compoment/JqueryDatatable";
 
 
@@ -11,6 +12,12 @@ export default function Home() {
 
   return (
     <main className={styles.main}>
+      <Toaster position="top-right" toastOptions={{
+        // Define default options
+        className: '',
+        duration: 2000,
+
+      }} />
       <div className={styles.description}>
         <Login />
         <Register />

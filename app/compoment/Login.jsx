@@ -1,19 +1,23 @@
 "use client";
 import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { z } from "zod";
 // ecosystems,
 const LoginSchema = z.object({
-    email: z.string().email().min(1, { message: "Hobbies is required" }),
-    password: z.string().min(4, { message: "password is required" })
+    UserName: z.string().email().min(1, { message: "Hobbies is required" }),
+    Password: z.string().min(4, { message: "password is required" })
 });
 const Login = () => {
-    const [formData, setFormData] = useState({ email: "", password: "" });
+    const [formData, setFormData] = useState({ UserName: "", Password: "" });
     const [errors, setErrors] = useState({});
-
-    const handleLogin = (e) => {
+    const [respError, setRespError] = useState(``);
+    const [showPassword, setShowPassword] = useState(false);
+    const router = useRouter();
+    const handleLogin = async (e) => {
         e.preventDefault();
         const result = LoginSchema.safeParse(formData);
-
         try {
             if (!result.success) {
                 // Proceed with form submission
@@ -21,8 +25,21 @@ const Login = () => {
                 // setErrors(result.error.formErrors.fieldErrors);
                 setErrors(result.error.flatten());
             } else {
+                const formData = new FormData(e.currentTarget);
                 // Handle validation errors
-                console.log("success", result.data);
+                console.log("success", result.data, e.currentTarget);
+                const res = await signIn("credentials", {
+                    email: formData.get("UserName"),
+                    password: formData.get("Password"),
+                    redirect: false,
+                });
+                if (res?.error) {
+                    console.log("RESp:", res.error)
+                    setRespError(res.error)
+                };
+                if (!res?.error) {
+                    return router.push("/admin")
+                };
             }
         } catch (e) {
             console.log("error:", e)
@@ -43,20 +60,20 @@ const Login = () => {
         <div className="outer">
             <h1>Login Form</h1>
 
-
+            {respError}
             <div className="inner">
                 <form onSubmit={handleLogin}>
 
 
-                    <p> <input className="in" onChange={changeHandler} type="email" name="email" placeholder="Type your Email" value={formData.email} /><i className="fa-solid fa-user"></i></p>
-                    {errors?.fieldErrors?.email ? (
-                        <span className="text-red-500">{errors.fieldErrors['email']}</span>
+                    <p> <input className="in" onChange={changeHandler} type="email" name="UserName" placeholder="Type your Email" value={formData.email} /><i className="fa-solid fa-user"></i></p>
+                    {errors?.fieldErrors?.UserName ? (
+                        <span className="text-red-500">{errors.fieldErrors['UserName']}</span>
                     ) : null}
 
 
-                    <p><input className="in" onChange={changeHandler} type="password" name="password" placeholder="Type your Password" value={formData.password} /><i className="fa-solid fa-lock"></i></p>
-                    {errors?.fieldErrors?.password ? (
-                        <span className="text-red-500">{errors.fieldErrors['password']}</span>
+                    <p><input className="in" onChange={changeHandler} type="password" name="Password" placeholder="Type your Password" value={formData.password} /><i className="fa-solid fa-lock"></i></p>
+                    {errors?.fieldErrors?.Password ? (
+                        <span className="text-red-500">{errors.fieldErrors['Password']}</span>
                     ) : null}
 
                     <p>Already have an account <a href="#">Forget Password?</a></p>

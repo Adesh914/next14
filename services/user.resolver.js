@@ -1,3 +1,5 @@
+import { GraphQLError } from "graphql";
+
 import UserService from "./user.service";
 
 const user = new UserService();
@@ -33,6 +35,11 @@ const userResolver = {
     },
     Mutation: {
         add: async (_, { input }, content) => {
+            const { email } = input;
+            const emailRow = await user.getOne(email);
+            if (emailRow) {
+                throw new GraphQLError(`this ${email} already exists. email address must be unique.`);
+            }
             return user.createUser(input);
         },
         edit: async (_, { input }, context) => {

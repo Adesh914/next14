@@ -20,6 +20,10 @@ const UserSchema = gql`
         pageSize: Int
         totalPage:Int
     }
+    type Error{
+        message: String!
+        code: String
+    }
     #filter parameter pass as input type of object
     input UserFilter{
         id: String
@@ -29,6 +33,7 @@ const UserSchema = gql`
         Users(q:String):[User]
         User(id:ID!): User
         UserList(filter:[String],q: String,pageNo:Int,pageSize:Int):Datatable
+        ResolverError: Error
     }
     
     #user input
