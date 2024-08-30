@@ -1,5 +1,5 @@
 import { GraphQLError } from "graphql";
-
+import { getToken } from "next-auth/jwt";
 import UserService from "./user.service";
 
 const user = new UserService();

@@ -34,11 +34,10 @@ const Login = () => {
                     redirect: false,
                 });
                 if (res?.error) {
-                    console.log("RESp:", res.error)
                     setRespError(res.error)
                 };
                 if (!res?.error) {
-                    return router.push("/admin")
+                    return router.push("/admin");
                 };
             }
         } catch (e) {
