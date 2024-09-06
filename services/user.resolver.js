@@ -6,7 +6,7 @@ const user = new UserService();
 const userResolver = {
     Query: {
         UserList: async (_, args, context) => {
-
+            console.log("context:", context)
             const { q, pageNo, pageSize, filter } = args; console.log("filter:", JSON.parse(filter));
             let param = {};
             // const param = q ? { "name": new RegExp(`${q}`, "i") } : {};

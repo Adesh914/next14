@@ -3,38 +3,53 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import connectDB from "@/db/connection";
 import bcrypt from "bcrypt";
 import UserService from "@/services/user.service";
-import { jwt } from "jsonwebtoken";
+import TokenService from "@/services/token.service";
+import jwt from "jsonwebtoken";
 const service = new UserService();
+const jwtToken = new TokenService();
 // https://canopas.com/next-js-how-to-validate-forms-on-the-server-side-using-zod
 //https://tighten.com/insights/form-validation-with-type-inference-made-easy-with-zod-the-best-sidekick-for-typescript/#:~:text=Zod%20shines%20with%20TypeScript%20because,type%20safety%20even%20without%20TypeScript.
 // https://lyonwj.com/blog/grandstack-podcast-app-next-js-graphql-authentication
 
 // Helper function to refresh JWT token
-async function refreshJwtToken(token) {
+async function refreshAccessToken(token) {
     // Verify the token
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    // const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET);
+    jwt.verify(token, process.env.NEXTAUTH_SECRET, (err, decoded) => {
+        if (err) {
+            if (err instanceof jwt.TokenExpiredError) {
+                console.log('Token has expired:', err);
+            } else if (err instanceof jwt.JsonWebTokenError) {
+                console.log('Token is invalid or malformed:', err);
+            } else if (err instanceof jwt.NotBeforeError) {
+                console.log('Token is not yet valid:', err);
+            } else {
+                console.log('Unknown error:', err);
+            }
+        } else {
+            console.log('Token verified:', decoded);
+        }
+    })
 
     // Refresh the token
-    const newToken = jwt.sign(decoded, process.env.SECRET_KEY, {
-        expiresIn: '1h',
-    });
+    const newToken = jwt.sign(decoded, process.env.NEXTAUTH_SECRET, { expiresIn: process.env.TOKEN_EXP });
 
     return newToken;
 }
 export const authOptions = {
+    // Enable refresh tokens
     session: {
-        strategy: 'jwt',
-
-        // jwt: true,
+        // strategy: 'jwt',
+        jwt: true,
         // maxAge: 30 * 24 * 60 * 60, // 30 days
-        // maxAge: 1 * 60 * 60, // 1 hrs
+        maxAge: 1 * 60 * 60, // 1 hrs
     },
-    // Enable JSON Web Tokens
+
     jwt: {
         secret: process.env.NEXTAUTH_SECRET,
-        maxAge: 1 * 1 * 15 * 60, // 15 minutes
+        maxAge: 1 * 1 * 10 * 60, // 10 minutes
     },
-    refresh: 15 * 60, // 15 minutes
+    // refresh: 15 * 60, // 15 minutes
     // jwt: async ({ token, user, account, profile, isNewUser }) => {
 
     //     // Refresh token logic here
@@ -81,9 +96,10 @@ export const authOptions = {
     // Define the jwt callback function
     callbacks: {
         async signIn({ user, account, profile, email, credentials }) {
-            console.log("account:-", account, "user:-", user)
+
             // const isAllowedToSignIn = true
             if (user.isAllowedToSignIn) {
+
                 return true
             } else {
                 // Return false to display a default error message
@@ -106,7 +122,13 @@ export const authOptions = {
             // Send properties to the client, like an access_token and user id from a provider.
             session.accessToken = token.accessToken
             session.user.id = token.id
-            console.log("session:", token);
+
+            if (token) {
+                session.user = token.user
+                session.accessToken = token.accessToken
+                session.error = token.error
+            }
+            console.log('Session event triggered:', session);
             return session
         },
 
@@ -116,29 +138,49 @@ export const authOptions = {
         //         session.accessToken = token.accessToken
         //         session.error = token.error
         //     }
-        //     console.log("session:", session)
+
         //     return session
         // },
         async jwt({ token, user, account, profile, isNewUser }) {
-            // console.log("jwt Token:", token, user, account, isNewUser);
+
+            const tokenData = {
+                id: user.id,
+                username: user.name,
+                email: user.email
+            }
+            // Get the expiration time of the token
+            // const expiresAt = Date.now() + (10 * 60 * 1000); // 10 minutes
+            const expiresAt = 10 * 60;
+            // Create a token with expiration of 15 minutes
+            const generatedToken = jwt.sign(tokenData, process.env.NEXTAUTH_SECRET, { expiresIn: expiresAt });
+
+
+            console.log(generatedToken)
             // Initial sign in
             if (account && user) {
+                const token = { "accessToken": generatedToken };
+
+                const jwtDoc = await jwtToken.getToken({ userId: user.id });
+                if (!jwtDoc) {
+                    const newRow = await jwtToken.insertToken({ userId: user.id, jwtToken: token.accessToken, expiresAt: expiresAt });
+                }
                 return {
-                    accessToken: account.accessToken,
-                    accessTokenExpires: Date.now() + account.expires_in * 1000,
-                    refreshToken: account.refresh_token,
-                    user,
+                    token,
+                    // refreshToken: generatedToken.exp,
+                    // user,
                 }
             }
 
             // Return previous token if the access token has not expired yet
-            if (Date.now() < token.accessTokenExpires) {
-                return token
-            }
-
-            // Access token has expired, try to update it
-            return refreshAccessToken(token)
+            /*   if (Date.now() < token.accessTokenExpires) {
+                  return token
+              }
+              const jwt_token = refreshAccessToken(token);
+  
+              // Access token has expired, try to update it
+              return jwt_token */
         }
+
 
     },
     // Configure JWT settings

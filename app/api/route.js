@@ -25,22 +25,14 @@ const resolvers = {
     },
 };
 await connectDB();
-const sec_key = process.env.NEXTAUTH_SECRET;
-
 const apolloServer = new ApolloServer({
     typeDefs: [typeDefs, UserSchema],
     resolvers: [resolvers, userResolver],
 });
-
+//https://blog.designly.biz/a-complete-guide-to-authentication-in-next-js-14
+//https://levelup.gitconnected.com/how-to-add-jwt-authentication-to-nextjs-apps-a0dc83bd257d
 const getHandler = startServerAndCreateNextHandler(apolloServer, {
-    context: async req => {
-        const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-        console.log(token)
-        // if (!token) {
-        //     throw new Error('Unauthorized');
-        // }
-        // return { token, user: token.user };
-    },
+    context: async req => await getToken({ req, secret: process.env.NEXTAUTH_SECRET }),
     // context: async ({ req, res }) => {
     //     console.log(req);
     //     // const token = await getToken({ req, sec_key })
