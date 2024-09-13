@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { format } from 'date-fns';
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 import { useMutation } from "@apollo/client";
 import { ADD_USER } from "@/services/user.query";
 import { z } from "zod";
@@ -64,7 +67,12 @@ const Register = () => {
         }
         // RegisterSubmitHandler
     }
+    const [selected, setSelected] = useState();
 
+    let footer = <p>Please pick a day.</p>;
+    if (selected) {
+        footer = <p>You picked {format(selected, 'PP')}.</p>;
+    }
     return (
         <div className="outer">
             <h1>Register Form</h1>
@@ -88,6 +96,16 @@ const Register = () => {
                     {errors?.fieldErrors?.password ? (
                         <span className="text-red-500">{errors.fieldErrors['password']}</span>
                     ) : null}
+                    <DayPicker
+                        mode="single"
+                        showOverlay={true}
+                        selected={selected}
+                        onSelect={setSelected}
+                        footer={footer}
+                        formatters={{
+                            formatCaption: (date, options) => format(date, "LLLL yyyy", options)
+                        }}
+                    />
                     <p><input className="btn" type="submit" value="Submit" />&nbsp;<input className="btn" type="reset" value="Reset" /></p>
 
                 </form>

@@ -29,6 +29,7 @@ const apolloServer = new ApolloServer({
     typeDefs: [typeDefs, UserSchema],
     resolvers: [resolvers, userResolver],
 });
+// https://discuss.python.org/t/video-generation-with-python/47250
 //https://blog.designly.biz/a-complete-guide-to-authentication-in-next-js-14
 //https://levelup.gitconnected.com/how-to-add-jwt-authentication-to-nextjs-apps-a0dc83bd257d
 const getHandler = startServerAndCreateNextHandler(apolloServer, {
